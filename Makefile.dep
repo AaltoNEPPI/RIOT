@@ -72,9 +72,13 @@ ifneq (,$(filter uhcpc,$(USEMODULE)))
 endif
 
 ifneq (,$(filter nordic_softdevice_ble,$(USEPKG)))
-  USEMODULE += softdevice_handler
-  USEMODULE += ble_common
-  USEMODULE += ble_6lowpan
+  USEMODULE += nrf5_ble_common
+  USEMODULE += nrf5_ble_gatt
+  USEMODULE += nrf5_ble_ipsp
+  USEMODULE += nrf5_libraries_strerror
+  USEMODULE += nrf5_libraries_util
+  USEMODULE += nrf5_section_vars
+  USEMODULE += nrf5_softdevice_common
   USEMODULE += gnrc_sixlowpan
   USEMODULE += gnrc_sixlowpan_iphc
   USEMODULE += gnrc_ipv6_nib_6ln
