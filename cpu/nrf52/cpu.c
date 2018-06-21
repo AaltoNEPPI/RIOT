@@ -33,8 +33,7 @@ static bool ftpan_37(void);
 static bool ftpan_36(void);
 
 #ifdef SOFTDEVICE_PRESENT
-#include "softdevice_handler.h"
-uint8_t _ble_evt_buffer[BLE_STACK_EVT_MSG_BUF_SIZE];
+#include "nrf_sdh.h"
 #endif
 
 /**
@@ -69,8 +68,10 @@ void cpu_init(void)
 
     /* softdevice needs to be enabled from ISR context */
 #ifdef SOFTDEVICE_PRESENT
-    softdevice_handler_init(NRF_CLOCK_LFCLKSRC_XTAL_20_PPM, &_ble_evt_buffer,
-            BLE_STACK_EVT_MSG_BUF_SIZE, NULL);
+    const ret_code_t err_code = nrf_sdh_enable_request();
+    if (err_code != NRF_SUCCESS) {
+        core_panic(PANIC_GENERAL_ERROR, "Unable to enable NRF5 soft device.");
+    }
 
     /* fixup swi0 (used as softdevice PendSV trampoline) */
     NVIC_EnableIRQ(SWI0_EGU0_IRQn);
