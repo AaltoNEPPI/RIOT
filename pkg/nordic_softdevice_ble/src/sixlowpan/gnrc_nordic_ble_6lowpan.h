@@ -34,6 +34,11 @@
 extern "C" {
 #endif
 
+/**
+ * BLE observer priority used for 6lowpan.
+ */
+#define BLE_IPSP_MEDIUM_BLE_OBSERVER_PRIO 1
+
 void gnrc_nordic_ble_6lowpan_init(void);
 
 #ifdef __cplusplus

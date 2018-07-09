@@ -51,8 +51,6 @@
 #include "nrf_sdh.h"
 #include "nrf_sdh_ble.h"
 #include "ble_advdata.h"
-#include "ble_srv_common.h"
-#include "ble_ipsp.h"
 #include "app_error.h"
 #include "iot_defines.h"
 #include "ble-core.h"
@@ -70,16 +68,6 @@
  * The advertising interval. This value can vary between 100ms to 10.24s).
  */
 #define APP_ADV_INTERVAL                MSEC_TO_UNITS(333, UNIT_0_625_MS)
-
-/**
- * BLE observer priority.
- */
-#define BLE_IPV6_MEDIUM_BLE_OBSERVER_PRIO   1
-
-/**
- * Identifies the L2CAP configuration used with SoftDevice.
- */
-#define BLE_IPSP_TAG                        35
 
 /**
  * Minimum acceptable connection interval (0.5 seconds).
@@ -112,19 +100,32 @@ ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context);
 /*---------------------------------------------------------------------------*/
 
 /**
+ * Pointer to the BLE context passed by the upper layer.
+ *
+ * TODO: Should not need this kind of arrangement; consider refactoring.
+ */
+const ble_context_t *m_p_ble_context;
+
+// Register with the SoftDevice handler module for BLE events.
+NRF_SDH_BLE_OBSERVER(m_ble_observer, BLE_CONNECTION_MEDIUM_BLE_OBSERVER_PRIO,
+		     ble_evt_handler, &m_p_ble_context);
+
+/**
  * @brief Initialize and enable the BLE stack.
  */
 void
-ble_stack_init(void)
+ble_init(const ble_context_t *p_ble_context)
 {
   uint32_t err_code;
   uint32_t app_ram_start = 0;
 
+  m_p_ble_context = p_ble_context;
+
   // Add configuration the BLE stack using the default settings for 6LowPan
   // Fetch the start address of the application RAM.
-  err_code = nrf_sdh_ble_default_cfg_set(BLE_IPSP_TAG, &app_ram_start);
+  err_code = nrf_sdh_ble_default_cfg_set(p_ble_context->conn_cfg_tag, &app_ram_start);
   APP_ERROR_CHECK(err_code);
-  DEBUG("ble_stack_init: app_ram_start[%d]=%lx\n", BLE_IPSP_TAG, app_ram_start);
+  DEBUG("ble_stack_init: app_ram_start[%d]=%lx\n", p_ble_context->conn_cfg_tag, app_ram_start);
 
   // Enable BLE stack.
   err_code = nrf_sdh_ble_enable(&app_ram_start); // Issues warnings/debug about RAM start
@@ -132,9 +133,6 @@ ble_stack_init(void)
     core_panic(PANIC_GENERAL_ERROR, "ble-core: BLE initialisation failed: SoftDevice RAM too small");
   }
   APP_ERROR_CHECK(err_code);
-
-  // Register with the SoftDevice handler module for BLE events.
-  NRF_SDH_BLE_OBSERVER(m_ble_observer, BLE_IPV6_MEDIUM_BLE_OBSERVER_PRIO, ble_evt_handler, NULL/*p_context*/);
 
   // Setup address
   ble_gap_addr_t ble_addr;
@@ -146,6 +144,14 @@ ble_stack_init(void)
 
   err_code = sd_ble_gap_addr_set(&ble_addr);
   APP_ERROR_CHECK(err_code);
+
+  DEBUG("ble-core: GAP address: %02x:%02x:%02x:%02x:%02x:%02x\n",
+	ble_addr.addr[5],
+	ble_addr.addr[4],
+	ble_addr.addr[3],
+	ble_addr.addr[2],
+	ble_addr.addr[1],
+	ble_addr.addr[0]);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -171,8 +177,10 @@ ble_get_mac(uint8_t addr[8])
  * @param name Human readable device name that will be advertised
  */
 void
-ble_advertising_init(const char *name)
+ble_advertising_init(const ble_context_t *p_ble_context)
 {
+  const char *const name = p_ble_context->name;
+
   /**
    * Buffers for storing an encoded advertising set.
    * The ble_gap_adv_data_t buffer must be statically allocated for the SoftDevice to use.
@@ -206,15 +214,13 @@ ble_advertising_init(const char *name)
   err_code = sd_ble_gap_ppcp_set(&gap_conn_params);
   APP_ERROR_CHECK(err_code);
 
-  ble_uuid_t adv_uuids[] = {{BLE_UUID_IPSP_SERVICE, BLE_UUID_TYPE_BLE}};
-
   // Build and set advertising data.
   memset(&advdata, 0, sizeof(advdata));
 
   advdata.name_type = BLE_ADVDATA_FULL_NAME;
   advdata.flags = flags;
-  advdata.uuids_complete.uuid_cnt = sizeof(adv_uuids) / sizeof(adv_uuids[0]);
-  advdata.uuids_complete.p_uuids = adv_uuids;
+  advdata.uuids_complete.uuid_cnt = p_ble_context->adv_uuid_cnt;
+  advdata.uuids_complete.p_uuids = p_ble_context->adv_uuids;
 
   err_code = ble_advdata_encode(&advdata, adv_data.adv_data.p_data, &adv_data.adv_data.len);
   APP_ERROR_CHECK(err_code);
@@ -237,11 +243,11 @@ ble_advertising_init(const char *name)
  * @brief Start BLE advertising.
  */
 void
-ble_advertising_start(void)
+ble_advertising_start(const ble_context_t *p_ble_context)
 {
   uint32_t err_code;
 
-  err_code = sd_ble_gap_adv_start(m_adv_handle, BLE_IPSP_TAG);
+  err_code = sd_ble_gap_adv_start(m_adv_handle, p_ble_context->conn_cfg_tag);
   APP_ERROR_CHECK(err_code);
 
   DEBUG("ble-core: advertising started\n");
@@ -261,16 +267,18 @@ ble_gap_addr_print(const ble_gap_addr_t *addr)
         }
         DEBUG("%02x", addr->addr[i]);
     }
-    DEBUG(" (%d)\n", addr->addr_type);
+    DEBUG(" (%d)", addr->addr_type);
 }
-/*---------------------------------------------------------------------------*/
+
 /**
- * @brief Function for handling the Application's BLE Stack events.
+ * @brief SoftDevice BLE event callback.
  * @param[in]   p_ble_evt   Bluetooth stack event.
  */
 static void
-on_ble_evt(ble_evt_t const *p_ble_evt)
+ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 {
+  const ble_context_t *p_ble_context = *(ble_context_t **)p_context;
+
   switch(p_ble_evt->header.evt_id) {
     case BLE_GAP_EVT_CONNECTED:
       DEBUG("ble-core: connected [handle:%d, peer: ", p_ble_evt->evt.gap_evt.conn_handle);
@@ -283,24 +291,11 @@ on_ble_evt(ble_evt_t const *p_ble_evt)
 
     case BLE_GAP_EVT_DISCONNECTED:
       DEBUG("ble-core: disconnected [handle:%d]\n", p_ble_evt->evt.gap_evt.conn_handle);
-      ble_advertising_start();
+      ble_advertising_start(p_ble_context);
       break;
     default:
       break;
   }
-
-  ble_ipsp_evt_handler(p_ble_evt);
-}
-/*---------------------------------------------------------------------------*/
-/**
- * @brief SoftDevice BLE event callback.
- * @param[in]   p_ble_evt   Bluetooth stack event.
- */
-static void
-ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
-{
-  ble_ipsp_evt_handler(p_ble_evt);
-  on_ble_evt(p_ble_evt);
 }
 /*---------------------------------------------------------------------------*/
 /**
