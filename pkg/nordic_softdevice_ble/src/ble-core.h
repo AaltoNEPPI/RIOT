@@ -48,26 +48,47 @@
 
 #include <stdint.h>
 
+#include "ble_types.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
+ * BLE observer priority used in ble-core.c connectivity observer.
+ * See @ble_evt_handler() in `ble-core.c`
+ *
+ * Note that you can (and should) register additional
+ * observers, e.g. 6lowpan registers an BLE IPSP observer.
+ */
+#define BLE_CONNECTION_MEDIUM_BLE_OBSERVER_PRIO 1
+
+/**
+ * BLE context, provided by the application
+ */
+typedef struct ble_context {
+    const uint8_t conn_cfg_tag; /**< Connection configuration tag */
+    const char *const name;     /**< Advertised device name */
+    ble_uuid_t *adv_uuids;      /**< Table of advertised services */
+    uint32_t adv_uuid_cnt;      /**< Number of advertised servies */
+} ble_context_t;
+
+/**
  * @brief Initialize and enable the BLE stack.
  */
-void ble_stack_init(void);
+void ble_init(const ble_context_t *p_ble_context);
 
 /**
  * @brief Initialize BLE advertising data.
  *
  * @param name Human readable device name that will be advertised
  */
-void ble_advertising_init(const char *name);
+void ble_advertising_init(const ble_context_t *p_ble_context);
 
 /**
  * @brief Start BLE advertising.
  */
-void ble_advertising_start(void);
+void ble_advertising_start(const ble_context_t *p_ble_context);
 
 /**
  * @brief Return device EUI64 MAC address

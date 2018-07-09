@@ -50,8 +50,13 @@
 #include "net/gnrc/nettype.h"
 
 #include "ble-core.h"
-
 #include "ble-mac.h"
+
+#include "gnrc_nordic_ble_6lowpan.h"
+
+#include "nrf_sdh_ble.h"
+#include "ble_srv_common.h"
+#include "ble_ipsp.h"
 
 #define ENABLE_DEBUG    (0)
 #include "debug.h"
@@ -61,6 +66,11 @@
 #endif
 
 #define BLE_PRIO                    (GNRC_NETIF_PRIO)
+
+/**
+ * Identifies the L2CAP configuration used with SoftDevice.
+ */
+#define BLE_IPSP_TAG                        35
 
 /* XXX: netdev required by gnrc_netif, but not implemented fully for
  * nordic_softdevice_ble for legacy reasons */
@@ -177,15 +187,36 @@ static int _send(gnrc_pktsnip_t *pkt)
     return 0;
 }
 
+/**
+ * Register IPSP observer, to handle incoming IPSP packets
+ */
+NRF_SDH_BLE_OBSERVER(m_ble_observer, BLE_IPSP_MEDIUM_BLE_OBSERVER_PRIO,
+		     (nrf_sdh_ble_evt_handler_t)ble_ipsp_evt_handler, NULL);
+
+/**
+ * Advertise IPSP service
+ */
+static ble_uuid_t adv_uuids[] = {{BLE_UUID_IPSP_SERVICE, BLE_UUID_TYPE_BLE}};
+
+/**
+ * BLE context for ble-core
+ */
+static const ble_context_t ble_context = {
+    .conn_cfg_tag = BLE_IPSP_TAG,
+    .name = "RIOT BLE",
+    .adv_uuids = adv_uuids,
+    .adv_uuid_cnt = sizeof(adv_uuids) / sizeof(adv_uuids[0]),
+};
+
 static int _netdev_init(netdev_t *dev)
 {
     _ble_netif = dev->context;
-    ble_stack_init();
+    ble_init(&ble_context);
     ble_mac_init(_ble_mac_callback);
     _ble_netif->l2addr_len = BLE_SIXLOWPAN_L2_ADDR_LEN;
     ble_get_mac(_ble_netif->l2addr);
-    ble_advertising_init("RIOT BLE");
-    ble_advertising_start();
+    ble_advertising_init(&ble_context);
+    ble_advertising_start(&ble_context);
     return 0;
 }
 
