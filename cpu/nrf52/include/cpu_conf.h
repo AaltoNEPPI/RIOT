@@ -42,7 +42,11 @@ extern "C" {
  * @name    ARM Cortex-M specific CPU configuration
  * @{
  */
+#ifdef SOFTDEVICE_PRESENT
+#define CPU_DEFAULT_IRQ_PRIO            (6U)
+#else
 #define CPU_DEFAULT_IRQ_PRIO            (2U)
+#endif
 #define CPU_FLASH_BASE                  (0x00000000)
 #ifdef CPU_MODEL_NRF52832XXAA
 #define CPU_IRQ_NUMOF                   (38U)
