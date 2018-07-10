@@ -33,11 +33,7 @@ extern const void *_isr_vectors;
 
 void cortexm_init(void)
 {
-    /* initialize the FPU on Cortex-M4F CPUs */
-#if defined(CPU_ARCH_CORTEX_M4F) || defined(CPU_ARCH_CORTEX_M7)
-    /* give full access to the FPU */
-    SCB->CPACR |= (uint32_t)FULL_FPU_ACCESS;
-#endif
+    cortexm_init_fpu();
 
     /* configure the vector table location to internal flash */
 #if defined(CPU_ARCH_CORTEX_M3) || defined(CPU_ARCH_CORTEX_M4) || \
@@ -46,6 +42,21 @@ void cortexm_init(void)
     SCB->VTOR = (uint32_t)&_isr_vectors;
 #endif
 
+    cortexm_init_isr_priorities();
+    cortexm_init_misc();
+}
+
+void cortexm_init_fpu(void)
+{
+    /* initialize the FPU on Cortex-M4F CPUs */
+#if defined(CPU_ARCH_CORTEX_M4F) || defined(CPU_ARCH_CORTEX_M7)
+    /* give full access to the FPU */
+    SCB->CPACR |= (uint32_t)FULL_FPU_ACCESS;
+#endif
+}
+
+void cortexm_init_isr_priorities(void)
+{
     /* initialize the interrupt priorities */
     /* set pendSV interrupt to same priority as the rest */
     NVIC_SetPriority(PendSV_IRQn, CPU_DEFAULT_IRQ_PRIO);
@@ -55,7 +66,10 @@ void cortexm_init(void)
     for (unsigned i = 0; i < CPU_IRQ_NUMOF; i++) {
         NVIC_SetPriority((IRQn_Type) i, CPU_DEFAULT_IRQ_PRIO);
     }
+}
 
+void cortexm_init_misc(void)
+{
     /* enable wake up on events for __WFE CPU sleep */
     SCB->SCR |= SCB_SCR_SEVONPEND_Msk;
 
