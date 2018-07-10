@@ -69,6 +69,30 @@ void cpu_init(void);
 void cortexm_init(void);
 
 /**
+ * @brief   Initialize Cortex-M FPU
+ *
+ * Called from `cpu/nrf52/cpu.c`, since it cannot use the
+ * whole `cortexm_init` due to conflicting requirements.
+ */
+void cortexm_init_fpu(void);
+
+/**
+ * @brief   Initialize Cortex-M interrupt priorities
+ *
+ * Called from `cpu/nrf52/cpu.c`, since it cannot use the
+ * whole `cortexm_init` due to conflicting requirements.
+ */
+void cortexm_init_isr_priorities(void);
+
+/**
+ * @brief   Initialize Cortex-M misc functions
+ *
+ * Called from `cpu/nrf52/cpu.c`, since it cannot use the
+ * whole `cortexm_init` due to conflicting requirements.
+ */
+void cortexm_init_misc(void);
+
+/**
  * @brief   Prints the current content of the link register (lr)
  */
 static inline void cpu_print_last_instruction(void)
