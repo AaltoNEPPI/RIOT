@@ -20,8 +20,6 @@
  * @}
  */
 
-#define DONT_OVERRIDE_NVIC
-
 #include "cpu.h"
 #include "nrf_clock.h"
 #include "periph_conf.h"
@@ -66,7 +64,8 @@ void cpu_init(void)
     /* enable instruction cache */
     NRF_NVMC->ICACHECNF = (NVMC_ICACHECNF_CACHEEN_Msk);
 
-    /* softdevice needs to be enabled from ISR context */
+    /* start the Cortex-M specific configuration and initialisation */
+    cortexm_init_isr_priorities();
 #ifdef SOFTDEVICE_PRESENT
     const ret_code_t err_code = nrf_sdh_enable_request();
     if (err_code != NRF_SUCCESS) {
@@ -74,15 +73,18 @@ void cpu_init(void)
     }
 
     /* fixup swi0 (used as softdevice PendSV trampoline) */
-    NVIC_EnableIRQ(SWI0_EGU0_IRQn);
-    NVIC_SetPriority(SWI0_EGU0_IRQn, 6);
-#else
-    /* call cortexm default initialization */
-    cortexm_init();
+    const ret_code_t err_code3 = sd_nvic_SetPriority(SWI0_EGU0_IRQn, 6);
+    if (NRF_SUCCESS != err_code3) {
+	core_panic(PANIC_SOFT_REBOOT, "cpu: unable to set SW0 interrupts priority with nRF SoftDevice");
+    }
+    const ret_code_t err_code2 = sd_nvic_EnableIRQ(SWI0_EGU0_IRQn);
+    if (NRF_SUCCESS != err_code2) {
+	core_panic(PANIC_SOFT_REBOOT, "cpu: unable to enable SW0 interrupts with nRF SoftDevice");
+    }
 #endif
-
-    /* enable wake up on events for __WFE CPU sleep */
-    SCB->SCR |= SCB_SCR_SEVONPEND_Msk;
+    /* finalise the Cortex-M specific configuration and initialisation */
+    cortexm_init_fpu();
+    cortexm_init_misc();
 
     /* trigger static peripheral initialization */
     periph_init();
