@@ -62,19 +62,19 @@ void app_error_fault_handler(uint32_t id, uint32_t pc, uint32_t info)
 
 #if defined(SOFTDEVICE_PRESENT) && SOFTDEVICE_PRESENT
     case NRF_FAULT_ID_SD_ASSERT:
-        LOG_ERROR("=== SOFTDEVICE: ASSERTION FAILED");
+        LOG_ERROR("=== SOFTDEVICE: ASSERTION FAILED\n");
         break;
     case NRF_FAULT_ID_APP_MEMACC:
-        LOG_ERROR("=== SOFTDEVICE: INVALID MEMORY ACCESS");
+        LOG_ERROR("=== SOFTDEVICE: INVALID MEMORY ACCESS\n");
         break;
 #endif
     case NRF_FAULT_ID_SDK_ASSERT:
-        LOG_ERROR("=== ASSERTION FAILED at %s:%u",
+        LOG_ERROR("=== ASSERTION FAILED at %s:%u\n",
               p_assert_info->p_file_name,
               p_assert_info->line_num);
         break;
     case NRF_FAULT_ID_SDK_ERROR:
-        LOG_ERROR("=== ERROR %u [%s] at %s:%u\r\nPC at: 0x%08x",
+        LOG_ERROR("=== ERROR %u [%s] at %s:%u\r\nPC at: 0x%08x\n",
               p_error_info->err_code,
               nrf_strerror_get(p_error_info->err_code),
               p_error_info->p_file_name,
@@ -82,10 +82,10 @@ void app_error_fault_handler(uint32_t id, uint32_t pc, uint32_t info)
               pc);
         break;
     default:
-        LOG_ERROR("=== UNKNOWN FAULT at 0x%08X", pc);
+        LOG_ERROR("=== UNKNOWN FAULT at 0x%08X\n", pc);
         break;
     }
 
-    LOG_ERROR("=== End of error report");
-    core_panic(PANIC_SOFT_REBOOT, "NRF Fatal error");
+    LOG_ERROR("=== End of error report\n");
+    core_panic(PANIC_ASSERT_FAIL, "NRF Fatal error");
 }
