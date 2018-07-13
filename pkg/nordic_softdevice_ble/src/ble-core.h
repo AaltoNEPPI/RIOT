@@ -71,6 +71,8 @@ typedef struct ble_context {
     const char *const name;     /**< Advertised device name */
     ble_uuid_t *adv_uuids;      /**< Table of advertised services */
     uint32_t adv_uuid_cnt;      /**< Number of advertised servies */
+    uint32_t app_adv_interval;  /**< Advertising interval, in units
+				 *   of 0.625 ms */
 } ble_context_t;
 
 /**

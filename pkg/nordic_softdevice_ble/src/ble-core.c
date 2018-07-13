@@ -50,9 +50,12 @@
 #include "nrf_sdm.h"
 #include "nrf_sdh.h"
 #include "nrf_sdh_ble.h"
-#include "ble_advdata.h"
+#include "nrf_nvic.h"
+
 #include "app_error.h"
+#include "ble_advdata.h"
 #include "iot_defines.h"
+
 #include "ble-core.h"
 
 #define ENABLE_DEBUG (0)
@@ -60,14 +63,10 @@
 
 /**
  * Time for which the device must be advertising in non-connectable
- * mode (in seconds). 0 disables timeout.
+ * mode (in seconds). BLE_GAP_ADV_TIMEOUT_GENERAL_UNLIMITED (0)
+ * disables timeout.
  */
-#define APP_ADV_DURATION                0
-
-/**
- * The advertising interval. This value can vary between 100ms to 10.24s).
- */
-#define APP_ADV_INTERVAL                MSEC_TO_UNITS(333, UNIT_0_625_MS)
+#define APP_ADV_DURATION BLE_GAP_ADV_TIMEOUT_GENERAL_UNLIMITED
 
 /**
  * Minimum acceptable connection interval (0.5 seconds).
@@ -233,7 +232,7 @@ ble_advertising_init(const ble_context_t *p_ble_context)
   adv_params.properties.type = BLE_GAP_ADV_TYPE_CONNECTABLE_SCANNABLE_UNDIRECTED;
   adv_params.p_peer_addr     = NULL; // Undirected advertisement.
   adv_params.filter_policy   = BLE_GAP_ADV_FP_ANY;
-  adv_params.interval        = APP_ADV_INTERVAL;
+  adv_params.interval        = p_ble_context->app_adv_interval;
 
   err_code = sd_ble_gap_adv_set_configure(&m_adv_handle, &adv_data, &adv_params);
   APP_ERROR_CHECK(err_code);
@@ -277,24 +276,46 @@ ble_gap_addr_print(const ble_gap_addr_t *addr)
 static void
 ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
 {
+  static const ble_gap_phys_t phys = {
+    .rx_phys = BLE_GAP_PHY_AUTO,
+    .tx_phys = BLE_GAP_PHY_AUTO,
+  };
+
   const ble_context_t *p_ble_context = *(ble_context_t **)p_context;
+  ret_code_t err_code;
 
   switch(p_ble_evt->header.evt_id) {
-    case BLE_GAP_EVT_CONNECTED:
-      DEBUG("ble-core: connected [handle:%d, peer: ", p_ble_evt->evt.gap_evt.conn_handle);
-      ble_gap_addr_print(&(p_ble_evt->evt.gap_evt.params.connected.peer_addr));
-      DEBUG("]\n");
-      sd_ble_gap_rssi_start(p_ble_evt->evt.gap_evt.conn_handle,
-                            BLE_GAP_RSSI_THRESHOLD_INVALID,
-                            0);
-      break;
+  case BLE_GAP_EVT_CONNECTED:
+    DEBUG("ble-core: connected [handle:%d, peer: ", p_ble_evt->evt.gap_evt.conn_handle);
+    ble_gap_addr_print(&(p_ble_evt->evt.gap_evt.params.connected.peer_addr));
+    DEBUG("]\n");
+    sd_ble_gap_rssi_start(p_ble_evt->evt.gap_evt.conn_handle,
+			  BLE_GAP_RSSI_THRESHOLD_INVALID,
+			  0);
+    break;
 
-    case BLE_GAP_EVT_DISCONNECTED:
-      DEBUG("ble-core: disconnected [handle:%d]\n", p_ble_evt->evt.gap_evt.conn_handle);
-      ble_advertising_start(p_ble_context);
-      break;
-    default:
-      break;
+  case BLE_GAP_EVT_DISCONNECTED:
+    DEBUG("ble-core: disconnected [handle:%d]\n", p_ble_evt->evt.gap_evt.conn_handle);
+    ble_advertising_start(p_ble_context);
+    break;
+
+  case BLE_GAP_EVT_SEC_PARAMS_REQUEST:
+    DEBUG("ble-core: sec_param_request [handle:%d]\n", p_ble_evt->evt.gap_evt.conn_handle);
+    err_code = sd_ble_gap_sec_params_reply(p_ble_evt->evt.gap_evt.conn_handle,
+					   BLE_GAP_SEC_STATUS_PAIRING_NOT_SUPP,
+					   NULL,
+					   NULL);
+    APP_ERROR_CHECK(err_code);
+    break;
+
+  case BLE_GAP_EVT_PHY_UPDATE_REQUEST:
+    DEBUG("ble-core: PHY update request\n");
+    err_code = sd_ble_gap_phy_update(p_ble_evt->evt.gap_evt.conn_handle, &phys);
+    APP_ERROR_CHECK(err_code);
+    break;
+
+  default:
+    break;
   }
 }
 /*---------------------------------------------------------------------------*/
