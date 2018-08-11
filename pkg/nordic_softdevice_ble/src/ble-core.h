@@ -77,18 +77,24 @@ typedef struct ble_context {
 
 /**
  * @brief Initialize and enable the BLE stack.
+ * @param p_ble_context A pointer to a BLE context.
+ *
+ * Stores the context to be passed to BLE events from the SD and
+ * initialises the BLE SD with.  Also sets up the BLE address through
+ * getting the HW address through the SD and changing it to a
+ * corresponding public address.
  */
 void ble_init(const ble_context_t *p_ble_context);
 
 /**
  * @brief Initialize BLE advertising data.
- *
- * @param name Human readable device name that will be advertised
+ * @param p_ble_context A pointer to a BLE context
  */
 void ble_advertising_init(const ble_context_t *p_ble_context);
 
 /**
  * @brief Start BLE advertising.
+ * @param p_ble_context A pointer to a BLE context
  */
 void ble_advertising_start(const ble_context_t *p_ble_context);
 

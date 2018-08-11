@@ -71,22 +71,22 @@
 /**
  * Minimum acceptable connection interval (0.5 seconds).
  */
-#define GAP_MIN_CONN_INTERVAL               MSEC_TO_UNITS(100, UNIT_1_25_MS)
+#define GAP_MIN_CONN_INTERVAL MSEC_TO_UNITS(100, UNIT_1_25_MS)
 
 /**
  * Maximum acceptable connection interval (1 second).
  */
-#define GAP_MAX_CONN_INTERVAL               MSEC_TO_UNITS(200, UNIT_1_25_MS)
+#define GAP_MAX_CONN_INTERVAL MSEC_TO_UNITS(200, UNIT_1_25_MS)
 
 /**
  * Slave latency.
  */
-#define GAP_SLAVE_LATENCY                   0
+#define GAP_SLAVE_LATENCY     0
 
 /**
  * Connection supervisory time-out (4 seconds).
  */
-#define GAP_CONN_SUP_TIMEOUT                MSEC_TO_UNITS(4000, UNIT_10_MS)
+#define GAP_CONN_SUP_TIMEOUT  MSEC_TO_UNITS(4000, UNIT_10_MS)
 
 /**
  * Advertising handle used to identify an advertising set.
@@ -99,9 +99,18 @@ ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context);
 /*---------------------------------------------------------------------------*/
 
 /**
- * Pointer to the BLE context passed by the upper layer.
+ * Pointer to the BLE context passed by the upper layer to `ble_init`.
  *
- * TODO: Should not need this kind of arrangement; consider refactoring.
+ * `NRF_SDH_BLE_OBSERVER` macro expands to a compile-time assignment
+ * of the event handler function and the context argument to a
+ * structure, which is placed in a specific memory segment scanned by
+ * the SD whenever there is an event to dispatch.  Since RIOT does not
+ * currently support similar arrangement but typically relies on
+ * context parameters passed by the application, we use an extra layer
+ * of indirection here.
+ */
+/*
+ * TODO: Should not need this kind of arrangement.
  */
 const ble_context_t *m_p_ble_context;
 
