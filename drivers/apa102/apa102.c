@@ -27,14 +27,20 @@
 #define END             (0xffffffff)
 
 #define HEAD            (0xe0000000)
-#define BRIGHT          (0x1f000000)
-#define BLUE            (0x00ff0000)
-#define GREEN           (0x0000ff00)
-#define RED             (0x000000ff)
 #define BRIGHT_SHIFT    (21U)
+#define BRIGHT_MASK     (0x1f000000)
+
+#ifndef APA102_SHIFTED_COLORS
+/* Standard LED colours, as per data sheet */
 #define BLUE_SHIFT      (16U)
 #define GREEN_SHIFT     (8U)
-
+#define RED_SHIFT       (0U)
+#else
+/* Wrong LED colours */
+#define RED_SHIFT       (16U)
+#define BLUE_SHIFT      (8U)
+#define GREEN_SHIFT     (0U)
+#endif
 
 static inline void shift(const apa102_t *dev, uint32_t data)
 {
@@ -66,10 +72,10 @@ void apa102_load_rgba(const apa102_t *dev, const color_rgba_t vals[])
         uint32_t data = HEAD;
         /* we scale the 8-bit alpha value to a 5-bit value by cutting off the
          * 3 leas significant bits */
-        data |= (((uint32_t)vals[i].alpha << BRIGHT_SHIFT) & BRIGHT);
-        data |= ((uint32_t)vals[i].color.b << BLUE_SHIFT);
-        data |= ((uint32_t)vals[i].color.g << GREEN_SHIFT);
-        data |= vals[i].color.r;
+        data |= (((uint32_t)vals[i].alpha << BRIGHT_SHIFT) & BRIGHT_MASK);
+        data |=  ((uint32_t)vals[i].color.b << BLUE_SHIFT);
+        data |=  ((uint32_t)vals[i].color.g << GREEN_SHIFT);
+        data |=  ((uint32_t)vals[i].color.r << RED_SHIFT);
         shift(dev, data);
     }
     shift(dev, END);
