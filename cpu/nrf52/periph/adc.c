@@ -42,6 +42,12 @@
 #ifndef ADC_TACQ
 #define ADC_TACQ            SAADC_CH_CONFIG_TACQ_10us
 #endif
+#ifndef ADC_BURST
+#define ADC_BURST           SAADC_CH_CONFIG_BURST_Enabled
+#endif
+#ifndef ADC_OVERSAMPLE
+#define ADC_OVERSAMPLE      SAADC_OVERSAMPLE_OVERSAMPLE_Over256x
+#endif
 /** @} */
 
 /**
@@ -85,12 +91,16 @@ int adc_init(adc_t line)
          * - bypass resistor ladder+
          * - acquisition time as defined by board (or 10us as default)
          * - reference and gain as defined by board (or VDD as default)
-         * - no oversampling */
-        NRF_SAADC->CH[0].CONFIG = ((ADC_GAIN << SAADC_CH_CONFIG_GAIN_Pos) |
-                                   (ADC_REF << SAADC_CH_CONFIG_REFSEL_Pos) |
-                                   (ADC_TACQ << SAADC_CH_CONFIG_TACQ_Pos));
+         * - allow burst mode oversampling
+	 */
+        NRF_SAADC->CH[0].CONFIG =
+	    0
+	    | (ADC_GAIN  << SAADC_CH_CONFIG_GAIN_Pos)
+	    | (ADC_REF   << SAADC_CH_CONFIG_REFSEL_Pos)
+	    | (ADC_TACQ  << SAADC_CH_CONFIG_TACQ_Pos)
+	    | (ADC_BURST << SAADC_CH_CONFIG_BURST_Pos)
+	    ;
         NRF_SAADC->CH[0].PSELN = SAADC_CH_PSELN_PSELN_NC;
-        NRF_SAADC->OVERSAMPLE = SAADC_OVERSAMPLE_OVERSAMPLE_Bypass;
 
         /* calibrate SAADC */
         NRF_SAADC->EVENTS_CALIBRATEDONE = 0;
@@ -103,18 +113,29 @@ int adc_init(adc_t line)
     return 0;
 }
 
+static uint8_t res2oversample[] = {
+    SAADC_OVERSAMPLE_OVERSAMPLE_Bypass,   //<  8 bit resolution
+    SAADC_OVERSAMPLE_OVERSAMPLE_Bypass,   //< 10 bit resolution
+    SAADC_OVERSAMPLE_OVERSAMPLE_Bypass,   //< 12 bit resolution
+    ADC_OVERSAMPLE,                       //< 14 bit resolution, oversampling
+};
+
 int adc_sample(adc_t line, adc_res_t res)
 {
     assert(line < ADC_NUMOF);
 
     /* check if resolution is valid */
-    if (res > 2) {
+    if (res > ADC_RES_14BIT) {
         return -1;
     }
+
+    assert(res < sizeof(res2oversample)/sizeof(res2oversample[0]));
 
     /* prepare device */
     prep();
 
+    /* set oversample */
+    NRF_SAADC->OVERSAMPLE = res2oversample[res];
     /* set resolution */
     NRF_SAADC->RESOLUTION = res;
     /* set line to sample */
