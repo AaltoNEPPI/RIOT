@@ -81,6 +81,8 @@ int adc_init(adc_t line)
 
     prep();
 
+    NVIC_EnableIRQ(SAADC_IRQn);
+
     /* prevent multiple initialization by checking the result ptr register */
     if (NRF_SAADC->RESULT.PTR != (uint32_t)&result) {
         /* set data pointer and the single channel we want to convert */
@@ -111,6 +113,14 @@ int adc_init(adc_t line)
     done();
 
     return 0;
+}
+
+void isr_saadc(void) {
+    NRF_SAADC->EVENTS_END = 0;
+    NRF_SAADC->INTENCLR = SAADC_INTEN_END_Msk;
+    /* Wake up adc_sample */
+    mutex_unlock(&lock);
+    cortexm_isr_end();
 }
 
 static uint8_t res2oversample[] = {
@@ -146,10 +156,20 @@ int adc_sample(adc_t line, adc_res_t res)
     NRF_SAADC->TASKS_START = 1;
     while (NRF_SAADC->EVENTS_STARTED == 0) {}
 
+    /* prevent interrupts from taking place early */
+    const uint32_t irqs = irq_disable();
+
+    /* enable EVENTS_END interrupt */
+    NRF_SAADC->INTENSET = SAADC_INTEN_END_Msk; /* Disabled at the handler */
+
     /* trigger the actual conversion */
     NRF_SAADC->EVENTS_END = 0;
     NRF_SAADC->TASKS_SAMPLE = 1;
-    while (NRF_SAADC->EVENTS_END == 0) {}
+
+    /* Wait for the sample to complete */
+    irq_restore(irqs);
+    // NOTE: There is a potential conflict window here.  FIXME.
+    mutex_lock(&lock);
 
     /* stop the SAADC */
     NRF_SAADC->EVENTS_STOPPED = 0;
