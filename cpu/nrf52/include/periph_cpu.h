@@ -75,7 +75,7 @@ typedef enum {
     ADC_RES_8BIT  = 0x00,   /**< ADC resolution: 8 bit */
     ADC_RES_10BIT = 0x01,   /**< ADC resolution: 10 bit */
     ADC_RES_12BIT = 0x02,   /**< ADC resolution: 12 bit */
-    ADC_RES_14BIT = 0xf1,   /**< supported with oversampling, not implemented */
+    ADC_RES_14BIT = 0x03,   /**< ADC resolution: 14 bit: oversample 256x */
     ADC_RES_16BIT = 0xf2    /**< not supported by hardware */
 } adc_res_t;
 /** @} */
