@@ -29,6 +29,34 @@
 extern "C" {
 #endif
 
+#ifdef FOO
+typedef float   color_sv_t;
+typedef float   color_hue_t;
+
+static const color_sv_t  SV_0     =   0.0f;
+static const color_sv_t  SV_1     =   1.0f;
+static const color_hue_t HUE_0    =   0.0f;
+static const color_hue_t HUE_2    =   2.0f;
+static const color_hue_t HUE_4    =   4.0f;
+static const color_hue_t HUE_60   =  60.0f;
+static const color_hue_t HUE_360  = 360.0f;
+
+static const color_sv_t HSVC_RGB = 255.0f;
+#else
+typedef int32_t color_sv_t;
+typedef int32_t color_hue_t;
+
+static const color_sv_t  SV_0     =      0;
+static const color_hue_t SV_1     =  10000;
+static const color_hue_t HUE_0    =      0;
+static const color_hue_t HUE_2    =    200;
+static const color_hue_t HUE_4    =    400;
+static const color_hue_t HUE_60   =   6000;
+static const color_hue_t HUE_360  =  36000;
+
+static const color_sv_t HSVC_RGB = 255;
+#endif
+
 /**
  * @brief Data-structure describing a RGB color
  */
@@ -48,11 +76,11 @@ typedef struct {
 
 /**
  * @brief Data-structure for holding HSV colors
- */
+p */
 typedef struct {
-    float h;            /**< hue value        [0.0 - 360.0] */
-    float s;            /**< saturation value [0.0 - 1.0] */
-    float v;            /**< value            [0.0 - 1.0] */
+    color_hue_t h;            /**< hue value        [0.0 - 360.0] or [0-36000] */
+    color_sv_t  s;            /**< saturation value [0.0 - 1.0]   or [0-10000] */
+    color_sv_t  v;            /**< value            [0.0 - 1.0]   or [0-10000] */
 } color_hsv_t;
 
 /**

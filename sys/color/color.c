@@ -22,17 +22,17 @@
 
 #include "color.h"
 
-#define ENABLE_DEBUG    (0)
+#define ENABLE_DEBUG    (1)
 #include "debug.h"
 
 void color_rgb2hsv(color_rgb_t *rgb, color_hsv_t *hsv)
 {
-    float rd, gd, bd, delta;
+    color_sv_t rd, gd, bd, delta; /* [0-1.0 or 0-10000] */
 
-    /* norm RGB colors to the range [0 - 1.0] */
-    rd = (float)rgb->r / 255.0f;
-    gd = (float)rgb->g / 255.0f;
-    bd = (float)rgb->b / 255.0f;
+    /* norm RGB colors to the range [0 - 1.0] or [0-10000]*/
+    rd = ((color_sv_t)rgb->r * SV_1) / HSVC_RGB;
+    gd = ((color_sv_t)rgb->g * SV_1) / HSVC_RGB;
+    bd = ((color_sv_t)rgb->b * SV_1) / HSVC_RGB;
 
     /* find value as maximum of the three colors */
     if (rd >= gd) {
@@ -51,29 +51,28 @@ void color_rgb2hsv(color_rgb_t *rgb, color_hsv_t *hsv)
     }
 
     /* find the saturation from value and delta */
-    hsv->s = (hsv->v != 0.0f) ? (delta / hsv->v) : 0x0f;
+    hsv->s = (hsv->v != SV_0) ? (delta * SV_1 / hsv->v) : SV_0;
 
     /* compute hue */
-    hsv->h = 0.0f;
-    if (hsv->s != 0.0) {
-        float rc, gc, bc;
+    hsv->h = SV_0;
+    if (hsv->s != SV_0) {
+        color_hue_t rc, gc, bc; /* [0-360.0 or 0-36000] */
 
-        rc = (hsv->v - rd) / delta;
-        gc = (hsv->v - gd) / delta;
-        bc = (hsv->v - bd) / delta;
+        rc = (hsv->v - rd) * HUE_60 / delta;
+        gc = (hsv->v - gd) * HUE_60 / delta;
+        bc = (hsv->v - bd) * HUE_60 / delta;
 
         if (rd == hsv->v) {
             hsv->h = bc - gc;
         }
         else if (gd == hsv->v) {
-            hsv->h = 2.0f + rc - bc;
+            hsv->h = HUE_2 + rc - bc;
         }
         else {
-            hsv->h = 4.0f + gc - rc;
+            hsv->h = HUE_4 + gc - rc;
         }
-        hsv->h *= 60.0f;
-        if (hsv->h < 0.0f) {
-            hsv->h += 360.0;
+        if (hsv->h < HUE_0) {
+            hsv->h += HUE_360;
         }
     }
 }
@@ -81,15 +80,17 @@ void color_rgb2hsv(color_rgb_t *rgb, color_hsv_t *hsv)
 void color_hsv2rgb(color_hsv_t *hsv, color_rgb_t *rgb)
 {
     int i;
-    float aa, bb, cc, f, h;
+    color_sv_t aa, bb, cc;
+    color_hue_t f, h;
 
-    if (hsv->s == 0.0f) {
-        rgb->r = (uint8_t)(hsv->v * 255.0f);
-        rgb->g = (uint8_t)(hsv->v * 255.0f);
-        rgb->b = (uint8_t)(hsv->v * 255.0f);
+    if (hsv->s == SV_0) {
+        rgb->r = (uint8_t)(hsv->v * HSVC_RGB);
+        rgb->g = (uint8_t)(hsv->v * HSVC_RGB);
+        rgb->b = (uint8_t)(hsv->v * HSVC_RGB);
         return;
     }
 
+/*
     h = (hsv->h == 360.0f) ? 0.0 : hsv->h;
     h /= 60.0f;
     i = (int)h;
@@ -97,38 +98,52 @@ void color_hsv2rgb(color_hsv_t *hsv, color_rgb_t *rgb)
     aa = hsv->v * (1.0f - hsv->s);
     bb = hsv->v * (1.0f - (hsv->s * f));
     cc = hsv->v * (1.0f - (hsv->s * (1.0f - f)));
+*/
+
+    h = (hsv->h == HUE_360) ? HUE_0 : hsv->h;
+    i = (int)(h / HUE_60); /* Color sector */
+    f = h - (i * HUE_60); /* Fraction, in hue terms: 0-6000 */
+    DEBUG("color: h=%d, i=%d, f=%d\n", h, i, f);
+    aa = (hsv->v * (SV_1 - hsv->s)) / SV_1;
+    bb = (hsv->v * (SV_1 - (hsv->s * f) / HUE_60)) / SV_1;
+    cc = (hsv->v * (SV_1 - (hsv->s * (HUE_60 - f)) / HUE_60)) / SV_1;
+
+    DEBUG("color: aa=%d, bb=%d, cc=%d\n", aa, bb, cc);
 
     switch (i) {
         case 0:
-            rgb->r = (uint8_t)(hsv->v * 255.0f);
-            rgb->g = (uint8_t)(cc * 255.0f);
-            rgb->b = (uint8_t)(aa * 255.0f);
+            rgb->r = (uint8_t)((hsv->v * HSVC_RGB) / SV_1);
+            rgb->g = (uint8_t)((cc * HSVC_RGB) / SV_1);
+            rgb->b = (uint8_t)((aa * HSVC_RGB) / SV_1);
             break;
         case 1:
-            rgb->r = (uint8_t)(bb * 255.0f);
-            rgb->g = (uint8_t)(hsv->v * 255.0f);
-            rgb->b = (uint8_t)(aa * 255.0f);
+            rgb->r = (uint8_t)((bb * HSVC_RGB) / SV_1);
+            rgb->g = (uint8_t)((hsv->v * HSVC_RGB) / SV_1);
+            rgb->b = (uint8_t)((aa * HSVC_RGB) / SV_1);
             break;
         case 2:
-            rgb->r = (uint8_t)(aa * 255.0f);
-            rgb->g = (uint8_t)(hsv->v * 255.0f);
-            rgb->b = (uint8_t)(cc * 255.0f);
+            rgb->r = (uint8_t)((aa * HSVC_RGB) / SV_1);
+            rgb->g = (uint8_t)((hsv->v * HSVC_RGB) / SV_1);
+            rgb->b = (uint8_t)((cc * HSVC_RGB) / SV_1);
             break;
         case 3:
-            rgb->r = (uint8_t)(aa * 255.0f);
-            rgb->g = (uint8_t)(bb * 255.0f);
-            rgb->b = (uint8_t)(hsv->v * 255.0f);
+            rgb->r = (uint8_t)((aa * HSVC_RGB) / SV_1);
+            rgb->g = (uint8_t)((bb * HSVC_RGB) / SV_1);
+            rgb->b = (uint8_t)((hsv->v * HSVC_RGB) / SV_1);
             break;
         case 4:
-            rgb->r = (uint8_t)(cc * 255.0f);
-            rgb->g = (uint8_t)(aa * 255.0f);
-            rgb->b = (uint8_t)(hsv->v * 255.0f);
+            rgb->r = (uint8_t)((cc * HSVC_RGB) / SV_1);
+            rgb->g = (uint8_t)((aa * HSVC_RGB) / SV_1);
+            rgb->b = (uint8_t)((hsv->v * HSVC_RGB) / SV_1);
             break;
         case 5:
-            rgb->r = (uint8_t)(hsv->v * 255.0f);
-            rgb->g = (uint8_t)(aa * 255.0f);
-            rgb->b = (uint8_t)(bb * 255.0f);
+            rgb->r = (uint8_t)((hsv->v * HSVC_RGB) / SV_1);
+            rgb->g = (uint8_t)((aa * HSVC_RGB) / SV_1);
+            rgb->b = (uint8_t)((bb * HSVC_RGB) / SV_1);
             break;
+        default:
+	    core_panic(PANIC_SOFT_REBOOT, "Color conversion failed");
+	    /* NOTREACHED */
     }
 }
 
