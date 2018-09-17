@@ -336,7 +336,9 @@ void __attribute__((naked)) __attribute__((used)) isr_svc(void) {
     /* PendSV will continue here as well (via jump) */
     ".thumb_func                      \n"
     /* perform scheduling */
+//  "cpsid  i                         \n" /* disable interrupts */
     "bl     sched_run                 \n"
+//  "cpsie  i                         \n" /* enable interrupts */
     /* restore context and return from exception */
     ".thumb_func                      \n"
     "context_restore:                 \n"

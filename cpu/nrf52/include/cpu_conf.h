@@ -44,6 +44,7 @@ extern "C" {
  */
 #ifdef SOFTDEVICE_PRESENT
 #define CPU_DEFAULT_IRQ_PRIO            (6U)
+#define CPU_PENDSV_IRQ_PRIO             (7U)
 #else
 #define CPU_DEFAULT_IRQ_PRIO            (2U)
 #endif
@@ -79,7 +80,7 @@ extern "C" {
 #if defined(THREAD_STACKSIZE_IDLE) && THREAD_STACKSIZE_IDLE < THREAD_STACKSIZE_DEFAULT
 #undef  THREAD_STACKSIZE_IDLE
 #endif
-#define THREAD_STACKSIZE_IDLE THREAD_STACKSIZE_DEFAULT
+#define THREAD_STACKSIZE_IDLE (2*THREAD_STACKSIZE_DEFAULT)
 
 /*
  * All NVIC calls should go through the SD wrappers.
@@ -146,12 +147,12 @@ static inline void nrf5_sd_nvic_ClearPendingIRQ(IRQn_Type IRQn) {
     if (NRF_SUCCESS != err_code) nrf5_sd_nvic_panic(err_code);
 }
 
-static inline void riot_nvic_SetPriority(IRQn_Type IRQn, uint32_t priority) {
+static inline void nrf5_sd_nvic_SetPriority(IRQn_Type IRQn, uint32_t priority) {
     const unsigned int err_code = sd_nvic_SetPriority(IRQn, priority);
     if (NRF_SUCCESS != err_code) nrf5_sd_nvic_panic(err_code);
 }
 
-static inline uint32_t riot_nvic_GetPriority(IRQn_Type IRQn) {
+static inline uint32_t nrf5_sd_nvic_GetPriority(IRQn_Type IRQn) {
     uint32_t priority;
     const unsigned int err_code = sd_nvic_GetPriority(IRQn, &priority);
     if (NRF_SUCCESS != err_code) nrf5_sd_nvic_panic(err_code);

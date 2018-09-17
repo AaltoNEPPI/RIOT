@@ -32,6 +32,22 @@
 
 #include "cpu.h"
 
+/*
+ * According to the ARM Cortex-M documentation, the recommended best
+ * practice is to place the PendSV at the lowest interrupt priority.
+ * However, RIOT has traditionally placed it in the same priority with
+ * the other interrupts.
+ *
+ * For now, by default we preserve the traditional RIOT behaviour,
+ * but allow specific CPUs, boards, or apps to change this.
+ *
+ * It is anticipated that this may be changed to the lowest
+ * priority at some point, after sufficient testing.
+ */
+#if !defined(CPU_PENDSV_IRQ_PRIO)
+#define CPU_PENDSV_IRQ_PRIO CPU_DEFAULT_IRQ_PRIO
+#endif
+
 /**
  * Interrupt vector base address, defined by the linker
  */
@@ -46,8 +62,8 @@ extern const void *_isr_vectors;
 CORTEXM_STATIC_INLINE void cortexm_init_isr_priorities(void)
 {
     /* initialize the interrupt priorities */
-    /* set pendSV interrupt to same priority as the rest */
-    NVIC_SetPriority(PendSV_IRQn, CPU_DEFAULT_IRQ_PRIO);
+    /* set pendSV interrupt to its own priority */
+    NVIC_SetPriority(PendSV_IRQn, CPU_PENDSV_IRQ_PRIO);
     /* set SVC interrupt to same priority as the rest */
     NVIC_SetPriority(SVCall_IRQn, CPU_DEFAULT_IRQ_PRIO);
     /* initialize all vendor specific interrupts with the same value */

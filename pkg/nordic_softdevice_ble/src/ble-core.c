@@ -58,7 +58,7 @@
 
 #include "ble-core.h"
 
-#define ENABLE_DEBUG (0)
+#define ENABLE_DEBUG (1)
 #include "debug.h"
 
 /**
@@ -116,7 +116,7 @@ const ble_context_t *m_p_ble_context;
 
 // Register with the SoftDevice handler module for BLE events.
 NRF_SDH_BLE_OBSERVER(m_ble_observer, BLE_CONNECTION_MEDIUM_BLE_OBSERVER_PRIO,
-		     ble_evt_handler, &m_p_ble_context);
+                     ble_evt_handler, &m_p_ble_context);
 
 /**
  * @brief Initialize and enable the BLE stack.
@@ -154,12 +154,12 @@ ble_init(const ble_context_t *p_ble_context)
   APP_ERROR_CHECK(err_code);
 
   DEBUG("ble-core: GAP address: %02x:%02x:%02x:%02x:%02x:%02x\n",
-	ble_addr.addr[5],
-	ble_addr.addr[4],
-	ble_addr.addr[3],
-	ble_addr.addr[2],
-	ble_addr.addr[1],
-	ble_addr.addr[0]);
+        ble_addr.addr[5],
+        ble_addr.addr[4],
+        ble_addr.addr[3],
+        ble_addr.addr[2],
+        ble_addr.addr[1],
+        ble_addr.addr[0]);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -299,8 +299,8 @@ ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
     ble_gap_addr_print(&(p_ble_evt->evt.gap_evt.params.connected.peer_addr));
     DEBUG("]\n");
     sd_ble_gap_rssi_start(p_ble_evt->evt.gap_evt.conn_handle,
-			  BLE_GAP_RSSI_THRESHOLD_INVALID,
-			  0);
+                          BLE_GAP_RSSI_THRESHOLD_INVALID,
+                          0);
     break;
 
   case BLE_GAP_EVT_DISCONNECTED:
@@ -311,9 +311,9 @@ ble_evt_handler(ble_evt_t const * p_ble_evt, void * p_context)
   case BLE_GAP_EVT_SEC_PARAMS_REQUEST:
     DEBUG("ble-core: sec_param_request [handle:%d]\n", p_ble_evt->evt.gap_evt.conn_handle);
     err_code = sd_ble_gap_sec_params_reply(p_ble_evt->evt.gap_evt.conn_handle,
-					   BLE_GAP_SEC_STATUS_PAIRING_NOT_SUPP,
-					   NULL,
-					   NULL);
+                                           BLE_GAP_SEC_STATUS_PAIRING_NOT_SUPP,
+                                           NULL,
+                                           NULL);
     APP_ERROR_CHECK(err_code);
     break;
 

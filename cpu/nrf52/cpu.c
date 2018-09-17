@@ -73,6 +73,19 @@ void cpu_init(void)
     /* enable instruction cache */
     NRF_NVMC->ICACHECNF = (NVMC_ICACHECNF_CACHEEN_Msk);
 
+#ifdef SOFTDEVICE_PRESENT
+    /* 
+     * Change to lowest priority bit to grouping.
+     *
+     * We use this as PendSV is on the lowest priority
+     * level 7, while all other interrupts are on the
+     * priority level 6.  With this, we effieciently mask
+     * the priority 6 interrupts while in PendSV, while
+     * still executing PendSV as the last in a chain.
+     */
+    NVIC_SetPriorityGrouping(1);
+#endif
+
     /* start the Cortex-M specific configuration and initialisation */
     cortexm_init_isr_priorities();
 #ifdef SOFTDEVICE_PRESENT

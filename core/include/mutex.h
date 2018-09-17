@@ -127,6 +127,42 @@ void mutex_unlock(mutex_t *mutex);
  */
 void mutex_unlock_and_sleep(mutex_t *mutex);
 
+/**
+ * @brief   Puts the current thread into sleep, holding the given mutex.
+ *
+ * @details The thread must hold the mutex when called.
+ *          The thread must be woken externally with thread_wakeup_mutex().
+ *          A benefit of this is that the waker does not need to know
+ *          what thread is sleeping; knowing the mutex is enough.
+ *
+ *          If the interrupts are disabled when called, enables the
+ *          interrupts while the thread sleeps and disables them
+ *          again before returning.
+ *
+ *          The mutex remains locked while the thread sleeps.
+ */
+void mutex_thread_sleep(mutex_t *m);
+
+/**
+ * @brief   Wakes up a thread sleeping while keeping a mutex.
+ *
+ * @param[in] mutex the mutex the sleeping thread is sleeping on.
+ *
+ * @details Typically called from an interrupt context.  If the
+ *          interrupts where disabled when the thread called
+ *          thread_sleep_keep_mutex(), makes sure that interrupts are
+ *          disabled when sleeping thread is resumed.
+ * 
+ *          Note, however, that if there were or are higher priority
+ *          threads running, those is allowed to run before the
+ *          sleeping thread is resumed.  Hence, this does *not*
+ *          guarantee that nothing happens between this call and
+ *          resuming, unless there are no other higher priority
+ *          interrupts and the sleeping thread has the highest
+ *          priority.
+ */
+void mutex_thread_wakeup(mutex_t *mutex);
+
 #ifdef __cplusplus
 }
 #endif

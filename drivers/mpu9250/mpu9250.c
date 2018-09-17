@@ -118,6 +118,13 @@ int mpu9250_reset_and_init(mpu9250_t *dev)
     return 0;
 }
 
+/* Emergency shutdown. IRQs are disabled, threads may not work any
+ * longer */
+void mpu9250_poweroff(mpu9250_t *dev)
+{
+    i2c_write_reg(DEV_I2C, DEV_ADDR, MPU9250_PWR_MGMT_1_REG, MPU9250_PWR_RESET, 0);
+}
+
 int mpu9250_set_accel_power(mpu9250_t *dev, mpu9250_pwr_t pwr_conf)
 {
     uint8_t pwr_1_setting, pwr_2_setting;

@@ -58,8 +58,8 @@ int _mutex_lock(mutex_t *mutex, int blocking)
         else {
             thread_add_to_list(&mutex->queue, me);
         }
-        irq_restore(irqstate);
         thread_yield_higher();
+        irq_restore(irqstate);
         /* We were woken up by scheduler. Waker removed us from queue.
          * We have the mutex now. */
         return 1;
@@ -69,6 +69,17 @@ int _mutex_lock(mutex_t *mutex, int blocking)
         return 0;
     }
 }
+
+#if 0
+void thread_sleep_keep_mutex(mutex_t *mutex)
+{
+    unsigned irqstate = irq_disable();
+    
+    DEBUG("PID[%" PRIkernel_pid "]: Sleeping on mutex.\n", sched_active_pid);
+
+    register thread_t *me = (thread_t*)sched_active_thread;
+}
+#endif
 
 void mutex_unlock(mutex_t *mutex)
 {
