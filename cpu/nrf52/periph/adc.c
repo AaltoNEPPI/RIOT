@@ -199,7 +199,7 @@ int adc_sample(adc_t line, adc_res_t res)
     }
 #else
     while (NRF_SAADC->EVENTS_END == 0) {
-	// thread_yield_higher();
+        // thread_yield_higher();
     }
 #endif
 

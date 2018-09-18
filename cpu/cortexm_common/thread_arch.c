@@ -280,8 +280,12 @@ void *thread_isr_stack_start(void)
 __attribute__((naked)) void NORETURN cpu_switch_context_exit(void)
 {
     __asm__ volatile (
+#if 0
     "bl     irq_enable               \n" /* enable IRQs to make the SVC
-                                           * interrupt is reachable */
+                                          * interrupt is reachable */
+#else
+    "cpsie  i                         \n" /* enable interrupts */
+#endif
     "svc    #1                            \n" /* trigger the SVC interrupt */
     "unreachable%=:                       \n" /* this loop is unreachable */
     "b      unreachable%=                 \n" /* loop indefinitely */
